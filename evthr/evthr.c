@@ -12,6 +12,9 @@
 #include <sys/ioctl.h>
 #include <sys/queue.h>
 #endif
+#ifdef USE_SYS_ATOMIC
+#include <sys/atomic.h>
+#endif
 
 #include <unistd.h>
 #include <pthread.h>
@@ -73,17 +76,29 @@ struct evthr {
 
 inline void
 evthr_inc_backlog(evthr_t * evthr) {
+#ifdef USE_SYS_ATOMIC
+    atomic_inc_uint(((unsigned int*)(&evthr->cur_backlog)));
+#else
     __sync_fetch_and_add(&evthr->cur_backlog, 1);
+#endif
 }
 
 inline void
 evthr_dec_backlog(evthr_t * evthr) {
+#ifdef USE_SYS_ATOMIC
+    atomic_dec_uint(((unsigned int*)(&evthr->cur_backlog)));
+#else
     __sync_fetch_and_sub(&evthr->cur_backlog, 1);
+#endif
 }
 
 inline int
 evthr_get_backlog(evthr_t * evthr) {
+#ifdef USE_SYS_ATOMIC
+    return (int)atomic_add_int_nv((unsigned int*)(&evthr->cur_backlog), 0);
+#else
     return __sync_add_and_fetch(&evthr->cur_backlog, 0);
+#endif
 }
 
 inline void

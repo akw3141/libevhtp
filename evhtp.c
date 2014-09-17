@@ -7,6 +7,7 @@
 #include <strings.h>
 #include <inttypes.h>
 #ifndef WIN32
+#include <sys/types.h> /* Need this before sys/socket for FreeBSD 7.0 */
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
@@ -2768,7 +2769,10 @@ evhtp_bind_socket(evhtp_t * htp, const char * baddr, uint16_t port, int backlog)
     struct sockaddr_in6 sin6;
 
 #ifndef NO_SYS_UN
-    struct sockaddr_un sun;
+    /* Apparently, some (or maybe all) solaris systems don't like the term 'sun'
+     * as a variable name, so we'll change it to 'sunx'
+     */
+    struct sockaddr_un sunx;
 #endif
     struct sockaddr  * sa;
     size_t             sin_len;
@@ -2789,18 +2793,18 @@ evhtp_bind_socket(evhtp_t * htp, const char * baddr, uint16_t port, int backlog)
 #ifndef NO_SYS_UN
         baddr += 5;
 
-        if (strlen(baddr) >= sizeof(sun.sun_path)) {
+        if (strlen(baddr) >= sizeof(sunx.sun_path)) {
             return -1;
         }
 
-        memset(&sun, 0, sizeof(sun));
+        memset(&sunx, 0, sizeof(sunx));
 
         sin_len        = sizeof(struct sockaddr_un);
-        sun.sun_family = AF_UNIX;
+        sunx.sun_family = AF_UNIX;
 
-        strncpy(sun.sun_path, baddr, strlen(baddr));
+        strncpy(sunx.sun_path, baddr, strlen(baddr));
 
-        sa = (struct sockaddr *)&sun;
+        sa = (struct sockaddr *)&sunx;
 #else
         fprintf(stderr, "System does not support AF_UNIX sockets\n");
         return -1;
